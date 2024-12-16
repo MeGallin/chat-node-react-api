@@ -3,6 +3,8 @@ require('dotenv').config({ path: './.env' });
 const cors = require('cors');
 const connectToDatabase = require('./config/config');
 
+const userRoute = require('./routes/userRoute');
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -15,6 +17,8 @@ async function startServer() {
   try {
     await connectToDatabase();
     //Routes
+
+    app.use('/api/users', userRoute);
 
     // Start the server
     app.listen(port, () => {
