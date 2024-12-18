@@ -5,6 +5,7 @@ const connectToDatabase = require('./config/config');
 
 const userRoute = require('./routes/userRoute');
 const chatRoute = require('./routes/chatRoute');
+const messageRoute = require('./routes/messageRoutes');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ async function startServer() {
     //Routes
     app.use('/api/users', userRoute);
     app.use('/api/chats', chatRoute);
+    app.use('/api/messages', messageRoute);
 
     // Start the server
     app.listen(port, () => {
