@@ -53,7 +53,7 @@ async function startServer() {
 
     // Listen for Socket.IO connections
     io.on('connection', (socket) => {
-      console.log('Socket connected:', socket.id);
+      // console.log('Socket connected:', socket.id);
 
       // Add a new user
       socket.on('addNewUser', (userId) => {
@@ -76,6 +76,40 @@ async function startServer() {
             isRead: false,
             date: new Date(),
           });
+        }
+      });
+
+      socket.on('deleteMessage', ({ messageId, senderId, chatId }) => {
+        try {
+          if (!chatId || !chatId.members) {
+            console.error('Invalid chatId or members:', chatId);
+            return;
+          }
+          // Find the recipient ID
+          const recipientId = chatId.members.find((id) => id !== senderId);
+
+          // Ensure recipientId is valid
+          if (!recipientId) {
+            console.error(
+              'Recipient ID not found in chat members:',
+              chatId.members,
+            );
+            return;
+          }
+          // Find the recipient in the onlineUsers list
+          const recipient = onlineUsers.find(
+            (user) => user.userId === recipientId,
+          );
+          // Notify the sender
+          socket.emit('messageDeleted', { messageId });
+          // Notify the recipient if they are online
+          if (recipient) {
+            io.to(recipient.socketId).emit('messageDeleted', { messageId });
+          } else {
+            console.log('Recipient not found or offline:', recipientId);
+          }
+        } catch (error) {
+          console.error('Error handling deleteMessage:', error);
         }
       });
 
