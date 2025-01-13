@@ -53,7 +53,7 @@ async function startServer() {
 
     // Listen for Socket.IO connections
     io.on('connection', (socket) => {
-      // console.log('Socket connected:', socket.id);
+      console.log('Socket connected:', socket.id);
 
       // Add a new user
       socket.on('addNewUser', (userId) => {
@@ -79,12 +79,9 @@ async function startServer() {
         }
       });
 
+      // Handle deleting messages
       socket.on('deleteMessage', ({ messageId, senderId, chatId }) => {
         try {
-          if (!chatId || !chatId.members) {
-            console.error('Invalid chatId or members:', chatId);
-            return;
-          }
           // Find the recipient ID
           const recipientId = chatId.members.find((id) => id !== senderId);
 
@@ -96,12 +93,15 @@ async function startServer() {
             );
             return;
           }
+
           // Find the recipient in the onlineUsers list
           const recipient = onlineUsers.find(
             (user) => user.userId === recipientId,
           );
+
           // Notify the sender
           socket.emit('messageDeleted', { messageId });
+
           // Notify the recipient if they are online
           if (recipient) {
             io.to(recipient.socketId).emit('messageDeleted', { messageId });
@@ -113,25 +113,28 @@ async function startServer() {
         }
       });
 
+      // Join a chat room
+      socket.on('joinChat', (chatId) => {
+        if (!chatId) {
+          console.error('No chatId provided for joinChat.');
+          return;
+        }
+        socket.join(chatId);
+        console.log(`Socket ${socket.id} joined room: ${chatId}`);
+      });
+
       // Notify other users when someone starts typing
       socket.on('startTyping', ({ chatId, senderId }) => {
-        console.log(`User ${senderId} is typing in chat ${chatId}`);
-        socket
-          .to(chatId)
-          .emit('userTyping', { chatId, senderId, isTyping: true });
+        io.to(chatId).emit('userTyping', { chatId, senderId, isTyping: true });
       });
 
       // Notify other users when someone stops typing
       socket.on('stopTyping', ({ chatId, senderId }) => {
-        console.log(`User ${senderId} stopped typing in chat ${chatId}`);
-        socket
-          .to(chatId)
-          .emit('userTyping', { chatId, senderId, isTyping: false });
+        io.to(chatId).emit('userTyping', { chatId, senderId, isTyping: false });
       });
 
       // Remove user on disconnect
       socket.on('disconnect', () => {
-        console.log('Socket disconnected:', socket.id);
         onlineUsers = onlineUsers.filter((user) => user.socketId !== socket.id);
         io.emit('getOnlineUsers', onlineUsers);
       });
