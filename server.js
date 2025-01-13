@@ -113,6 +113,22 @@ async function startServer() {
         }
       });
 
+      // Notify other users when someone starts typing
+      socket.on('startTyping', ({ chatId, senderId }) => {
+        console.log(`User ${senderId} is typing in chat ${chatId}`);
+        socket
+          .to(chatId)
+          .emit('userTyping', { chatId, senderId, isTyping: true });
+      });
+
+      // Notify other users when someone stops typing
+      socket.on('stopTyping', ({ chatId, senderId }) => {
+        console.log(`User ${senderId} stopped typing in chat ${chatId}`);
+        socket
+          .to(chatId)
+          .emit('userTyping', { chatId, senderId, isTyping: false });
+      });
+
       // Remove user on disconnect
       socket.on('disconnect', () => {
         console.log('Socket disconnected:', socket.id);
