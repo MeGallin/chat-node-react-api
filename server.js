@@ -68,46 +68,37 @@ async function startServer() {
 
       // Handle messages
       socket.on('sendMessage', (message) => {
-        const user = onlineUsers.find((u) => u.userId === message.recipientId);
-        if (user) {
-          io.to(user.socketId).emit('getMessage', message);
-          io.to(user.socketId).emit('getNotification', {
-            senderId: message.senderId,
-            isRead: false,
-            date: new Date(),
-          });
+        const { chatId, text, senderId, recipientId } = message;
+
+        // Handle group or individual messages
+        if (recipientId) {
+          // Individual message
+          const user = onlineUsers.find((u) => u.userId === recipientId);
+          if (user) {
+            io.to(user.socketId).emit('getMessage', message);
+            io.to(user.socketId).emit('getNotification', {
+              senderId,
+              isRead: false,
+              date: new Date(),
+            });
+          }
+        } else {
+          // Group message
+          io.to(chatId).emit('getMessage', message);
         }
       });
 
       // Handle deleting messages
-      socket.on('deleteMessage', ({ messageId, senderId, chatId }) => {
+      socket.on('deleteMessage', ({ messageId, chatId }) => {
         try {
-          // Find the recipient ID
-          const recipientId = chatId.members.find((id) => id !== senderId);
-
-          // Ensure recipientId is valid
-          if (!recipientId) {
-            console.error(
-              'Recipient ID not found in chat members:',
-              chatId.members,
-            );
+          if (!chatId || !messageId) {
+            console.error('Chat ID or Message ID missing for deleteMessage.');
             return;
           }
 
-          // Find the recipient in the onlineUsers list
-          const recipient = onlineUsers.find(
-            (user) => user.userId === recipientId,
-          );
-
-          // Notify the sender
-          socket.emit('messageDeleted', { messageId });
-
-          // Notify the recipient if they are online
-          if (recipient) {
-            io.to(recipient.socketId).emit('messageDeleted', { messageId });
-          } else {
-            console.log('Recipient not found or offline:', recipientId);
-          }
+          // Notify all members in the chat room about the deleted message
+          io.to(chatId).emit('messageDeleted', { messageId });
+          console.log(`Message ${messageId} deleted in chat ${chatId}`);
         } catch (error) {
           console.error('Error handling deleteMessage:', error);
         }
