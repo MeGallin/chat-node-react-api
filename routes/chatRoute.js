@@ -6,7 +6,13 @@ const {
   findChat,
 } = require('../controllers/chatController');
 
+// Create a chat (individual or group)
 router.post('/create-chat', createChat);
-router.get('/:userId', findUserChats); //get all chats
-router.get('/find/:firstUserId/:secondUserId', findChat); //get single chat
+
+// Get all chats for a user
+router.get('/:userId', findUserChats);
+
+// Get a single chat (individual or group)
+router.get('/find', findChat);
+
 module.exports = router;
